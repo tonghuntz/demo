@@ -10,123 +10,101 @@ import './App.css';
 import Provinces from './province.js';
 import Khets from './khet.js';
 import Khwangs from './khwang.js';
+import axios from 'axios';
 
 
 function App() {
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const [isAdd, setIsAdd] = useState(true);
 
   const showModal = () => {
     setIsOpen(true);
   };
 
   const hideModal = () => {
+    setuName('');
+    setfName('');
+    setlName('');
+    setEmail('');
     setIsOpen(false);
+    setIsEdit(false);
+    setIsAdd(true);
   };
   
-  const [saveAction, setSaveAction] = useState(false);
+  const [userID, setUserID] = useState('');
   const [uName, setuName] = useState('');
   const [fName, setfName] = useState('');
   const [lName, setlName] = useState('');
   const [email, setEmail] = useState('');
+  const province = document.getElementById("province");
+	const khet = document.getElementById("khet");
+	const khwang = document.getElementById("khwang");
 
-const SaveUser = () => {
-	setSaveAction(true);
+const AddUser = () => {
+  axios.post('/api/users', {
+    username: uName,
+		firstname:fName,
+		lastname:lName,
+		email:email,
+		provinceid: province.options[province.selectedIndex].value,
+		khetid: khet.options[khet.selectedIndex].value,
+		khwangid: khwang.options[khwang.selectedIndex].value
+  })
+  .then(function (response) {
+    console.log(response);
+  })
+  .catch(function (error) {
+    console.log(error);
+  });
+
+  setuName('');
+	setfName('');
+	setlName('');
+  setEmail('');
+  setIsOpen(false);
 };	
-    const [postId, setPostId] = useState(null);
-	const [error, setError] = useState(null);
-	const [isLoaded, setIsLoaded] = useState(false);
-	const [users, setusers] = useState([]);
 
-    useEffect(() => {
-		if(saveAction){
-			var province = document.getElementById("province");
-			var khet = document.getElementById("khet");
-			var khwang = document.getElementById("khwang");
-			fetch("/api/saveuser/"+uName+"/"+fName+"/"+lName+"/"+email+"/"+province.options[province.selectedIndex].value+"/"+khet.options[khet.selectedIndex].value+"/"+khwang.options[khwang.selectedIndex].value)
-			  .then(res => res.json())
-			  .then(
-				(result) => {
-				  setIsLoaded(true);
-				  setusers(result);
-				},
-				(error) => {
-				  setIsLoaded(true);
-				  setError(error);
-				}
-			  )
-			const requestOptions = {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ 
-					username: {uName},
-					firstname:{fName},
-					lastname:{lName},
-					email:{email},
-					provinceid: province.options[province.selectedIndex].value,
-					khetid: khet.options[khet.selectedIndex].value,
-					khwang: khwang.options[khwang.selectedIndex].value
-				})
-			};
-			setuName('');
-			setfName('');
-			setlName('');
-			setEmail('');
-			setIsOpen(false);
-		}
-		setSaveAction(false);
-		
-    }, [saveAction])
-
-	const Table = () => {
-  const [error, setError] = useState(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [users, setusers] = useState([]);
+  const [users, setUsers] = useState([]);
 
   useEffect(() => {
-    fetch("/api/user")
-      .then(res => res.json())
-      .then(
-        (result) => {
-          setIsLoaded(true);
-          setusers(result);
-        },
-        (error) => {
-          setIsLoaded(true);
-          setError(error);
-        }
-      )
+    axios.get('/api/users')
+    .then((response) => {
+      setUsers(response.data)
+    });
+    
   }, [])
+
+	const Table = () => {  
   
- const [searchTerm, setSearchTerm] = useState("");
- const [searchResults, setSearchResults] = useState([]);
- const handleChange = event => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const handleChange = event => {
     setSearchTerm(event.target.value);
   };
- React.useEffect(() => {
+  React.useEffect(() => {
     const results = users.filter(person =>
       person.FIRSTNAME.toLowerCase().includes(searchTerm) || person.LASTNAME.toLowerCase().includes(searchTerm) 
     );
     setSearchResults(results);
   }, [searchTerm]);
-
-  if (error) {
-    return <div>Error: {error.message}</div>;
-  } else if (!isLoaded) {
-    return <div>Loading...</div>;
-  } else {
-    return (      
+    
+  return (      
     <table className="table">
-	<tr>
-	<td>
-	<input
-        type="text"
-        placeholder="Search"
-        value={searchTerm}
-        onChange={handleChange}
-      />
-	  </td>
-	  </tr>
+      <thead>
+        <tr>
+	        <td>
+            <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchTerm}
+                  onChange={handleChange}
+                />
+          </td>
+        </tr>
+      </thead>
+
       <thead>
         <tr>
 		  <th>USERID</th>
@@ -153,44 +131,62 @@ const SaveUser = () => {
 			  <td>{ item.KHWANGNAME }</td>
 			  <td>{ item.ZIPCODE }</td>
 			  <td><button onClick={() => EditUser(item)}>edit</button></td>
-			  <td><button onClick={() => DeleteUser(item)}>delete</button></td>
+			  <td><button onClick={() => DeleteUser(item.USERID)}>delete</button></td>
             </tr>
         ))}
       </tbody>
     </table>
-  );
-  }
-  
+  );  
 }
 
 	const EditUser = (key) => {
+    setIsEdit(true);
+    setIsAdd(false);
 		setuName(key.USERNAME);
 		setfName(key.FIRSTNAME);
 		setlName(key.LASTNAME);
-		setEmail(key.EMAIL);
+    setEmail(key.EMAIL);
+    setUserID(key.USERID);
 		setIsOpen(true);
+  };	
+  
+  const EditCommit = () => {
+    axios.put('/api/users/'+userID, {
+      username: uName,
+      firstname:fName,
+      lastname:lName,
+      email:email,
+      provinceid: province.options[province.selectedIndex].value,
+      khetid: khet.options[khet.selectedIndex].value,
+      khwangid: khwang.options[khwang.selectedIndex].value
+    })
+    .then(function (response) {
+      console.log(response);
+    })
+    .catch(function (error) {
+      console.log(error);
+    });
+  
+    setuName('');
+    setfName('');
+    setlName('');
+    setEmail('');
+    setIsOpen(false);
+    setIsEdit(false);
+    setIsAdd(true);
 	};	
-	
+  
+
+  
 	const DeleteUser = (key) => {
-		setDelKey(key.USERID);
-		setDelAction(true);
-	};
+		axios.delete('/api/users/'+key);
+  };
 	
-	const [delAction, setDelAction] = useState(false);
-	const [delKey, setDelKey] = useState('0');
-
-	  useEffect(() => {
-		  if(setDelAction){
-			  fetch("/api/deluser"+delKey)
-		  }
-		  setDelAction(false);
-		
-
-	  }, [delAction])
   
   return (
       <div className="App">
-		<button onClick={showModal}>Add</button>
+		<button onClick={showModal} variant="primary">Add</button>
+    
       <Modal show={isOpen} onHide={hideModal}>
         <Modal.Header>
           <Modal.Title>Add User</Modal.Title>
@@ -206,7 +202,8 @@ const SaveUser = () => {
 		</Modal.Body>
         <Modal.Footer>
           <button onClick={hideModal}>Cancel</button>
-          <button onClick={SaveUser}>Save</button>
+          {isAdd ? <button onClick={AddUser}>Add</button> : <div></div>}
+          {isEdit ?<button onClick={EditCommit}>Edit</button> : <div></div>}
         </Modal.Footer>
       </Modal>
         <Table />

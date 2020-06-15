@@ -3,10 +3,14 @@ var oracledb = require('oracledb');
 
 const app = express();
 const port = process.env.PORT || 5550;
+const bodyParser = require('body-parser');
 
 app.listen(port);
 
-app.get("/api/user", function(req, res) {
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.json());
+
+app.get("/api/users", function(req, res) {
 	oracledb.getConnection({
 		user: 'system',
 		password: 'cfpxY5xNYjs=1',
@@ -31,7 +35,8 @@ app.get("/api/user", function(req, res) {
 				console.log(err);
 				return;
 			}
-			console.log(result.rows);
+			//console.log(result.rows);
+			connection.release();
 			res.send(result.rows);
 		});
 	});
@@ -54,7 +59,8 @@ app.get("/api/province", function(req, res) {
 				console.log(err);
 				return;
 			}
-			console.log(result.rows);
+			//console.log(result.rows);
+			connection.release();
 			res.send(result.rows);
 		});
 	});
@@ -77,7 +83,8 @@ app.get("/api/khet", function(req, res) {
 				console.log(err);
 				return;
 			}
-			console.log(result.rows);
+			//console.log(result.rows);
+			connection.release();
 			res.send(result.rows);
 		});
 	});
@@ -100,43 +107,80 @@ app.get("/api/khwang", function(req, res) {
 				console.log(err);
 				return;
 			}
-			console.log(result.rows);
+			//console.log(result.rows);
+			connection.release();
 			res.send(result.rows);
 		});
 	});
 });
 
-app.get('/api/saveuser/:userid/:username/:firstname/:lastname/:email/:provinceid/:khetid/:khwangid', function(req, res){
-  oracledb.getConnection({
-		user: 'system',
-		password: 'cfpxY5xNYjs=1',
-		connectString: '192.168.226.200/orcltest'
-	},
-	function(err, connection){
-		if(err){
-			console.log(err);
-			return;
-		}
-		connection.execute("DECLARE \
-				  temp_id INT; \
-				BEGIN \
-				INSERT INTO TABLEUSER (USERNAME, FIRSTNAME, LASTNAME,EMAIL ) VALUES ('"+req.param('username')+"', '"+req.param('firstname')+"', '"+req.body.req.param('email')+"', '"+req.param('id')+"') RETURNING USERID INTO temp_id; \
-				INSERT INTO TABLEADDRESS(USERID,PROVINCEID,KHETID,KHWANGID) VALUES(temp_id,"+req.param('provinceid')+","+req.param('khetid')+","+req.param('khwangid')+"); \
-				END;", function (error, result){
-			if(err){
-				console.log(err);
-				return;
-			}
-			connection.commit();
-			console.log(result);
-			res.send(JSON.stringify(result));
-			connection.release();
-		});
-	});
-	
-});
 
-app.get('/api/deluser/:userid/', function(req, res){
+app.post('/api/users/', function(req, res){
+	console.log('Got body:', req.body);
+	oracledb.getConnection({
+		  user: 'system',
+		  password: 'cfpxY5xNYjs=1',
+		  connectString: '192.168.226.200/orcltest'
+	  },
+	  function(err, connection){
+		  if(err){
+			  console.log("Error");
+			  console.log(err);
+			  return;
+		  }
+		  console.log("Starting execute");
+		  connection.execute("DECLARE \
+					temp_id INT; \
+				  BEGIN \
+				  INSERT INTO TABLEUSER (USERNAME, FIRSTNAME, LASTNAME,EMAIL ) VALUES ('"+req.body.username+"', '"+req.body.firstname+"', '"+req.body.lastname+"', '"+req.body.email+"') RETURNING USERID INTO temp_id; \
+				  INSERT INTO TABLEADDRESS(USERID,PROVINCEID,KHETID,KHWANGID) VALUES(temp_id,"+req.body.provinceid+","+req.body.khetid+","+req.body.khwangid+"); \
+				  END;", function (error, result){
+			  if(error){
+				  console.log(error);
+				  return;
+			  }
+			  connection.commit();
+			  console.log(result);
+			  res.sendStatus(200);
+			  connection.release();
+		  });
+	  });
+	  
+  });
+
+  app.put('/api/users/:userid', function(req, res){
+	console.log(req.params.userid);
+	console.log('Got body:', req.body);
+	oracledb.getConnection({
+		  user: 'system',
+		  password: 'cfpxY5xNYjs=1',
+		  connectString: '192.168.226.200/orcltest'
+	  },
+	  function(err, connection){
+		  if(err){
+			  console.log("Error");
+			  console.log(err);
+			  return;
+		  }
+		  console.log("Starting execute");
+		  connection.execute("BEGIN \
+			UPDATE TABLEUSER SET USERNAME='"+req.body.username+"', FIRSTNAME='"+req.body.firstname+"', LASTNAME='"+req.body.lastname+"', EMAIL='"+req.body.email+"' WHERE USERID = "+req.params.userid+"; \
+			UPDATE TABLEADDRESS SET PROVINCEID="+req.body.provinceid+", KHETID="+req.body.khetid+", KHWANGID="+req.body.khwangid+" WHERE USERID = "+req.params.userid+"; \
+			END;", function (error, result){
+			  if(error){
+				  console.log(error);
+				  return;
+			  }
+			  connection.commit();
+			  console.log(result);
+			  res.sendStatus(200);
+			  connection.release();
+		  });
+	  });
+	  
+  });
+
+app.delete('/api/users/:userid/', function(req, res){
   oracledb.getConnection({
 		user: 'system',
 		password: 'cfpxY5xNYjs=1',
@@ -148,16 +192,16 @@ app.get('/api/deluser/:userid/', function(req, res){
 			return;
 		}
 		connection.execute("BEGIN \
-				DELETE FROM TABLEUSER WHERE USERID="+req.param('provinceid')+"; \
-				DELETE FROM TABLEADDRESS WHERE USERID="+req.param('provinceid')+"; \
+				DELETE FROM TABLEUSER WHERE USERID="+req.params.userid+"; \
+				DELETE FROM TABLEADDRESS WHERE USERID="+req.params.userid+"; \
 				END;", function (error, result){
-			if(err){
-				console.log(err);
+			if(error){
+				console.log(error);
 				return;
 			}
 			connection.commit();
 			console.log(result);
-			res.send(JSON.stringify(result));
+			res.sendStatus(200);
 			connection.release();
 		});
 	});
