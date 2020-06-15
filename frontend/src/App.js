@@ -15,32 +15,32 @@ import axios from 'axios';
 
 function App() {
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [isEdit, setIsEdit] = useState(false);
-  const [isAdd, setIsAdd] = useState(true);
+const [isOpen, setIsOpen] = useState(false);
+const [isEdit, setIsEdit] = useState(false);
+const [isAdd, setIsAdd] = useState(true);
 
-  const showModal = () => {
-    setIsOpen(true);
-  };
+const showModal = () => {
+  setIsOpen(true);
+};
 
-  const hideModal = () => {
-    setuName('');
-    setfName('');
-    setlName('');
-    setEmail('');
-    setIsOpen(false);
-    setIsEdit(false);
-    setIsAdd(true);
-  };
+const hideModal = () => {
+  setuName('');
+  setfName('');
+  setlName('');
+  setEmail('');
+  setIsOpen(false);
+  setIsEdit(false);
+  setIsAdd(true);
+};
   
-  const [userID, setUserID] = useState('');
-  const [uName, setuName] = useState('');
-  const [fName, setfName] = useState('');
-  const [lName, setlName] = useState('');
-  const [email, setEmail] = useState('');
-  const province = document.getElementById("province");
-	const khet = document.getElementById("khet");
-	const khwang = document.getElementById("khwang");
+const [userID, setUserID] = useState('');
+const [uName, setuName] = useState('');
+const [fName, setfName] = useState('');
+const [lName, setlName] = useState('');
+const [email, setEmail] = useState('');
+const province = document.getElementById("province");
+const khet = document.getElementById("khet");
+const khwang = document.getElementById("khwang");
 
 const AddUser = () => {
   axios.post('/api/users', {
@@ -54,6 +54,7 @@ const AddUser = () => {
   })
   .then(function (response) {
     console.log(response);
+    LoadData();
   })
   .catch(function (error) {
     console.log(error);
@@ -67,13 +68,15 @@ const AddUser = () => {
 };	
 
   const [users, setUsers] = useState([]);
-
-  useEffect(() => {
+  
+  const LoadData = () => {
     axios.get('/api/users')
     .then((response) => {
       setUsers(response.data)
     });
-    
+  }
+  useEffect(() => {
+    LoadData();    
   }, [])
 
 	const Table = () => {  
@@ -101,6 +104,9 @@ const AddUser = () => {
                   value={searchTerm}
                   onChange={handleChange}
                 />
+          </td>
+          <td>
+            <button onClick={showModal}>Add User</button>
           </td>
         </tr>
       </thead>
@@ -162,6 +168,7 @@ const AddUser = () => {
     })
     .then(function (response) {
       console.log(response);
+      LoadData();
     })
     .catch(function (error) {
       console.log(error);
@@ -179,14 +186,13 @@ const AddUser = () => {
 
   
 	const DeleteUser = (key) => {
-		axios.delete('/api/users/'+key);
+    axios.delete('/api/users/'+key);
+    LoadData();
   };
 	
   
   return (
-      <div className="App">
-		<button onClick={showModal} variant="primary">Add</button>
-    
+      <div className="App">    
       <Modal show={isOpen} onHide={hideModal}>
         <Modal.Header>
           <Modal.Title>Add User</Modal.Title>
